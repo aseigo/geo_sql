@@ -25,7 +25,22 @@ defmodule GeoSQL.PostGIS.Extension do
   def init(_opts), do: nil
 
   def matching(_) do
-    [type: "geometry", type: "geography"]
+    Enum.reduce(
+      @geo_types,
+      [
+        type: "geometry",
+        type: "geography"
+      ],
+      fn struct_name, acc ->
+        type =
+          struct_name
+          |> to_string()
+          |> String.downcase()
+          |> String.replace(".", "_")
+
+        [{:type, type} | acc]
+      end
+    )
   end
 
   def format(_) do
