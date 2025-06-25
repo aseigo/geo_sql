@@ -145,6 +145,7 @@ defmodule GeoSQL do
   defp decode_one(type_extension, encoded_field) do
     case type_extension.decode_geometry(encoded_field) do
       {:ok, successfully_decoded_field} -> successfully_decoded_field
+      :error -> encoded_field
       {:error, _} -> encoded_field
     end
   end

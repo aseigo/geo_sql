@@ -17,23 +17,31 @@ defmodule GeoSQL.SpatialLite.TypeExtension do
   @behaviour Ecto.Adapters.SQLite3.TypeExtension
   @behaviour Exqlite.TypeExtension
   @geo_types [
-    Geo.GeometryCollection,
-    Geo.LineString,
-    Geo.LineStringZ,
-    Geo.LineStringZM,
-    Geo.MultiLineString,
-    Geo.MultiLineStringZ,
-    Geo.MultiLineStringZM,
-    Geo.MultiPoint,
-    Geo.MultiPointZ,
-    Geo.MultiPolygon,
-    Geo.MultiPolygonZ,
-    Geo.Point,
-    Geo.PointZ,
-    Geo.PointM,
-    Geo.PointZM,
-    Geo.Polygon,
-    Geo.PolygonZ
+    Geometry.GeometryCollection,
+    Geometry.LineString,
+    Geometry.LineStringZ,
+    Geometry.LineStringM,
+    Geometry.LineStringZM,
+    Geometry.MultiLineString,
+    Geometry.MultiLineStringZ,
+    Geometry.MultiLineStringM,
+    Geometry.MultiLineStringZM,
+    Geometry.MultiPoint,
+    Geometry.MultiPointZ,
+    Geometry.MultiPointM,
+    Geometry.MultiPointZM,
+    Geometry.MultiPolygon,
+    Geometry.MultiPolygonZ,
+    Geometry.MultiPolygonM,
+    Geometry.MultiPolygonZM,
+    Geometry.Point,
+    Geometry.PointZ,
+    Geometry.PointM,
+    Geometry.PointZM,
+    Geometry.Polygon,
+    Geometry.PolygonZ,
+    Geometry.PolygonM,
+    Geometry.PolygonZM
   ]
 
   defmodule InMemorySqlite do
@@ -121,11 +129,14 @@ defmodule GeoSQL.SpatialLite.TypeExtension do
     conn = InMemorySqlite.conn()
     {:ok, statement} = Exqlite.Sqlite3.prepare(conn, "SELECT AsEWKB(?1)")
     :ok = Exqlite.Sqlite3.bind(statement, [{:blob, data}])
-    {:row, [wkb]} = Exqlite.Sqlite3.step(conn, statement)
+
+    {:row, [base16_wkb]} = Exqlite.Sqlite3.step(conn, statement)
+
     :ok = Exqlite.Sqlite3.release(conn, statement)
 
+    {:ok, wkb} = Base.decode16(base16_wkb)
     # decode the WKB to a Geo struct
-    case Geo.WKB.decode(wkb) do
+    case Geometry.from_ewkb(wkb) do
       {:ok, data} -> {:ok, data}
       {:error, _reason} -> :error
     end
@@ -133,7 +144,7 @@ defmodule GeoSQL.SpatialLite.TypeExtension do
 
   defp convert_geometry(geometry) do
     data =
-      Geo.WKT.encode(geometry)
+      Geometry.to_ewkt(geometry)
       |> remove_zm_labels()
 
     # translate it to SpatialLite's format
@@ -152,7 +163,7 @@ defmodule GeoSQL.SpatialLite.TypeExtension do
   # SpatialLite does not like Z/ZM suffixes on the primitive types.
   # e.g. POINTZ will error, while a POINT with 3-dimensional will work.
   # HOWEVER ... POINTM is a thing. *sigh*
-  defp remove_zm_labels({:ok, wkt_encoded_string}) do
+  defp remove_zm_labels(wkt_encoded_string) do
     wkt_encoded_string
     |> String.replace(~r/ZM?([( ])/, "\\1")
   end

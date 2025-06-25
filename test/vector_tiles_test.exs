@@ -42,15 +42,15 @@ defmodule GeoSQL.TilesTest do
     [
       %{
         tags: %{amenity: "bench", backrest: "yes"},
-        geom: %Geo.Point{coordinates: {9.4393, 47.5130171}, srid: 4326}
+        geom: %Geometry.Point{coordinates: [9.4393, 47.5130171], srid: 4326}
       },
       %{
         tags: %{amenity: prefix, access: "private"},
-        geom: %Geo.Point{coordinates: {8.5392315, 47.3774401}, srid: 4326}
+        geom: %Geometry.Point{coordinates: [8.5392315, 47.3774401], srid: 4326}
       },
       %{
         tags: %{amenity: "swimming_pool", access: "private"},
-        geom: %Geo.Point{coordinates: {8.5392315, 47.3774401}, srid: 4326}
+        geom: %Geometry.Point{coordinates: [8.5392315, 47.3774401], srid: 4326}
       }
     ]
     |> Enum.with_index()

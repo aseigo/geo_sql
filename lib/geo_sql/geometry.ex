@@ -3,7 +3,6 @@ defmodule GeoSQL.Geometry do
   Geometry types for use with ecto. Supported types include:
 
     * GeoSQL.Geometry, a catch-all type
-    * GeoSQL.Geometry.
     * GeoSQL.Geometry.Point
     * GeoSQLGeometry.PointZ
     * GeoSQLGeometry.PointM
@@ -36,24 +35,35 @@ defmodule GeoSQL.Geometry do
       end
   """
 
-  alias Geo.{
+  alias Geometry.{
     Point,
     PointZ,
     PointM,
     PointZM,
     LineString,
     LineStringZ,
+    LineStringM,
     LineStringZM,
     Polygon,
     PolygonZ,
+    PolygonM,
+    PolygonZM,
     MultiPoint,
     MultiPointZ,
+    MultiPointM,
+    MultiPointZM,
     MultiLineString,
     MultiLineStringZ,
+    MultiLineStringM,
     MultiLineStringZM,
     MultiPolygon,
     MultiPolygonZ,
-    GeometryCollection
+    MultiPolygonM,
+    MultiPolygonZM,
+    GeometryCollection,
+    GeometryCollectionZ,
+    GeometryCollectionM,
+    GeometryCollectionZM
   }
 
   @types [
@@ -63,16 +73,24 @@ defmodule GeoSQL.Geometry do
     "PointZM",
     "LineString",
     "LineStringZ",
+    "LineStringM",
     "LineStringZM",
     "Polygon",
     "PolygonZ",
+    "PolygonM",
+    "PolygonZM",
     "MultiPoint",
     "MultiPointZ",
+    "MultiPointM",
+    "MultiPointZM",
     "MultiLineString",
     "MultiLineStringZ",
+    "MultiLineStringM",
     "MultiLineStringZM",
     "MultiPolygon",
-    "MultiPolygonZ"
+    "MultiPolygonZ",
+    "MultiPolygonM",
+    "MultiPolygonZM"
   ]
 
   @geometries [
@@ -82,20 +100,31 @@ defmodule GeoSQL.Geometry do
     PointZM,
     LineString,
     LineStringZ,
+    LineStringM,
     LineStringZM,
     Polygon,
     PolygonZ,
+    PolygonM,
+    PolygonZM,
     MultiPoint,
     MultiPointZ,
+    MultiPointM,
+    MultiPointZM,
     MultiLineString,
     MultiLineStringZ,
+    MultiLineStringM,
     MultiLineStringZM,
     MultiPolygon,
     MultiPolygonZ,
-    GeometryCollection
+    MultiPolygonM,
+    MultiPolygonZM,
+    GeometryCollection,
+    GeometryCollectionZ,
+    GeometryCollectionM,
+    GeometryCollectionZM
   ]
 
-  @type t :: Geo.geometry()
+  @type t :: Geometry.t()
 
   use Ecto.Type
 
@@ -180,7 +209,7 @@ defmodule GeoSQL.Geometry do
 
   @doc false
   def create_geometry_module_name(type) do
-    ["Geo", subtype] = Module.split(type)
+    ["Geometry", subtype] = Module.split(type)
     Module.concat(GeoSQL.Geometry, subtype)
   end
 
@@ -196,7 +225,7 @@ defmodule GeoSQL.Geometry do
   end
 
   defp do_cast(geom) do
-    case Geo.JSON.decode(geom) do
+    case Geometry.from_geo_json(geom) do
       {:ok, result} -> {:ok, result}
       {:error, reason} -> {:error, [message: "Failed to decode GeoJSON", reason: reason]}
     end

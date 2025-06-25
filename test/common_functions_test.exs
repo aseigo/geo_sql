@@ -21,7 +21,7 @@ defmodule GeoSQL.CommonFunctions.Test do
         query =
           from(location in GeoType, select: Common.add_point(location.linestring, location.point))
 
-        assert [%Geo.LineString{coordinates: coordinates}] =
+        assert [%Geometry.LineString{coordinates: coordinates}] =
                  unquote(repo).all(query)
                  |> GeoSQL.decode_geometry(unquote(repo))
 
@@ -37,7 +37,7 @@ defmodule GeoSQL.CommonFunctions.Test do
         query =
           from(location in GeoType, select: Common.add_point(location.linestring, location.point))
 
-        assert [%Geo.LineString{coordinates: coordinates}] =
+        assert [%Geometry.LineString{coordinates: coordinates}] =
                  unquote(repo).all(query)
                  |> GeoSQL.decode_geometry(unquote(repo))
 
@@ -54,7 +54,7 @@ defmodule GeoSQL.CommonFunctions.Test do
         query =
           from(location in GeoType, select: Common.add_point(location.linestring, location.point))
 
-        assert [%Geo.LineString{coordinates: coordinates}] =
+        assert [%Geometry.LineString{coordinates: coordinates}] =
                  unquote(repo).all(query)
                  |> GeoSQL.decode_geometry(unquote(repo))
 
@@ -65,13 +65,13 @@ defmodule GeoSQL.CommonFunctions.Test do
 
     describe "extent (#{repo})" do
       test "extent" do
-        geom = Geo.WKB.decode!(Fixtures.multipoint_wkb())
+        geom = Geometry.from_ewkb!(Fixtures.multipoint_ewkb())
 
         unquote(repo).insert(%Location{name: "hello", geom: geom})
 
         query = from(location in Location, select: Common.extent(location.geom, unquote(repo)))
 
-        assert [%Geo.Polygon{coordinates: [coordinates]}] =
+        assert [%Geometry.Polygon{rings: [coordinates]}] =
                  unquote(repo).all(query)
                  |> GeoSQL.decode_geometry(unquote(repo))
 
@@ -83,10 +83,10 @@ defmodule GeoSQL.CommonFunctions.Test do
       supports_self_intersection = [GeoSQL.Test.PostGIS.Repo]
 
       test "nodes from a linestring" do
-        coordinates = [{0, 0, 0}, {1, 1, 1}, {2, 2, 2}]
+        coordinates = [[0, 0, 0], [1, 1, 1], [2, 2, 2]]
 
-        # Create a self-intersecting linestring (crossing at point {1, 1, 1})
-        linestring = %Geo.LineStringZ{
+        # Create a self-intersecting linestring (crossing at point [1, 1, 1])
+        linestring = %Geometry.LineStringZ{
           coordinates: coordinates,
           srid: 4326
         }
@@ -103,18 +103,18 @@ defmodule GeoSQL.CommonFunctions.Test do
           unquote(repo).one(query)
           |> GeoSQL.decode_geometry(unquote(repo))
 
-        assert %Geo.LineStringZ{} = result
+        assert %Geometry.LineStringZ{} = result
 
         assert result.coordinates == coordinates
       end
 
       if Enum.member?(supports_self_intersection, repo) do
         test "self-intersecting linestring" do
-          coordinates = [{0, 0, 0}, {2, 2, 2}, {0, 2, 0}, {2, 0, 2}]
-          cross_point = {1, 1, 1}
+          coordinates = [[0, 0, 0], [2, 2, 2], [0, 2, 0], [2, 0, 2]]
+          cross_point = [1, 1, 1]
 
-          # Create a self-intersecting linestring (crossing at point {1, 1, 1})
-          linestring = %Geo.LineStringZ{
+          # Create a self-intersecting linestring (crossing at point [1, 1, 1])
+          linestring = %Geometry.LineStringZ{
             coordinates: coordinates,
             srid: 4326
           }
@@ -129,9 +129,9 @@ defmodule GeoSQL.CommonFunctions.Test do
 
           result = unquote(repo).one(query) |> GeoSQL.decode_geometry(unquote(repo))
 
-          assert %Geo.MultiLineStringZ{} = result
+          assert %Geometry.MultiLineStringZ{} = result
 
-          assert result.coordinates == [
+          assert result.line_strings == [
                    [Enum.at(coordinates, 0), cross_point],
                    [cross_point, Enum.at(coordinates, 1), Enum.at(coordinates, 2), cross_point],
                    [cross_point, Enum.at(coordinates, 3)]
@@ -139,13 +139,13 @@ defmodule GeoSQL.CommonFunctions.Test do
         end
 
         test "intersecting multilinestring" do
-          coordinates1 = [{0, 0, 0}, {2, 2, 2}]
-          coordinates2 = [{0, 2, 0}, {2, 0, 2}]
-          cross_point = {1, 1, 1}
+          coordinates1 = [[0, 0, 0], [2, 2, 2]]
+          coordinates2 = [[0, 2, 0], [2, 0, 2]]
+          cross_point = [1, 1, 1]
 
-          # Create a multilinestring that intersects (crossing at point {1, 1, 1})
-          linestring = %Geo.MultiLineStringZ{
-            coordinates: [
+          # Create a multilinestring that intersects (crossing at point [1, 1, 1])
+          linestring = %Geometry.MultiLineStringZ{
+            line_strings: [
               coordinates1,
               coordinates2
             ],
@@ -162,9 +162,9 @@ defmodule GeoSQL.CommonFunctions.Test do
 
           result = unquote(repo).one(query)
 
-          assert %Geo.MultiLineStringZ{} = result
+          assert %Geometry.MultiLineStringZ{} = result
 
-          assert result.coordinates == [
+          assert result.line_strings == [
                    [Enum.at(coordinates1, 0), cross_point],
                    [Enum.at(coordinates2, 0), cross_point],
                    [cross_point, Enum.at(coordinates1, 1)],
@@ -179,11 +179,11 @@ defmodule GeoSQL.CommonFunctions.Test do
 
       if Enum.member?(supports_directed_merges, repo) do
         test "lines with opposite directions not merged if directed is true" do
-          multiline = %Geo.MultiLineString{
-            coordinates: [
-              [{60, 30}, {10, 70}],
-              [{120, 50}, {60, 30}],
-              [{120, 50}, {180, 30}]
+          multiline = %Geometry.MultiLineString{
+            line_strings: [
+              [[60, 30], [10, 70]],
+              [[120, 50], [60, 30]],
+              [[120, 50], [180, 30]]
             ],
             srid: 4326
           }
@@ -201,16 +201,16 @@ defmodule GeoSQL.CommonFunctions.Test do
 
           # Verify the result is still a MultiLineString with only 2 lines merged
 
-          assert %Geo.MultiLineString{} = result
+          assert %Geometry.MultiLineString{} = result
 
-          assert length(result.coordinates) == 2
+          assert length(result.line_strings) == 2
 
           expected_linestrings = [
-            [{120, 50}, {60, 30}, {10, 70}],
-            [{120, 50}, {180, 30}]
+            [[120, 50], [60, 30], [10, 70]],
+            [[120, 50], [180, 30]]
           ]
 
-          sorted_result = Enum.sort_by(result.coordinates, fn linestring -> hd(linestring) end)
+          sorted_result = Enum.sort_by(result.line_strings, fn linestring -> hd(linestring) end)
 
           sorted_expected =
             Enum.sort_by(expected_linestrings, fn linestring -> hd(linestring) end)
@@ -220,11 +220,11 @@ defmodule GeoSQL.CommonFunctions.Test do
       end
 
       test "lines with opposite directions merged if directed is false" do
-        multiline = %Geo.MultiLineString{
-          coordinates: [
-            [{60, 30}, {10, 70}],
-            [{120, 50}, {60, 30}],
-            [{120, 50}, {180, 30}]
+        multiline = %Geometry.MultiLineString{
+          line_strings: [
+            [[60, 30], [10, 70]],
+            [[120, 50], [60, 30]],
+            [[120, 50], [180, 30]]
           ],
           srid: 4326
         }
@@ -242,13 +242,13 @@ defmodule GeoSQL.CommonFunctions.Test do
           unquote(repo).one(query)
           |> GeoSQL.decode_geometry(unquote(repo))
 
-        assert %Geo.LineString{} = result
+        assert %Geometry.LineString{} = result
 
         assert result.coordinates == [
-                 {180, 30},
-                 {120, 50},
-                 {60, 30},
-                 {10, 70}
+                 [180, 30],
+                 [120, 50],
+                 [60, 30],
+                 [10, 70]
                ]
       end
     end

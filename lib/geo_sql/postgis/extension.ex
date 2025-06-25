@@ -31,7 +31,7 @@ defmodule GeoSQL.PostGIS.Extension do
 
     quote location: :keep do
       %x{} = geom when x in unquote(all_types) ->
-        data = Geo.WKB.encode_to_iodata(geom)
+        data = Geometry.to_ewkb(geom)
         [<<IO.iodata_length(data)::integer-size(32)>> | data]
     end
   end
@@ -40,7 +40,8 @@ defmodule GeoSQL.PostGIS.Extension do
   def decode(_opts) do
     quote location: :keep do
       <<len::integer-size(32), wkb::binary-size(len)>> ->
-        Geo.WKB.decode!(wkb)
+        {:ok, decoded} = Geometry.from_ewkb(wkb)
+        decoded
     end
   end
 end
@@ -63,7 +64,7 @@ for type <- GeoSQL.Geometry.all_types() do
 
       quote location: :keep do
         %x{} = geom when x == unquote(type) ->
-          data = Geo.WKB.encode_to_iodata(geom)
+          data = Geometry.to_ewkb(geom)
           [<<IO.iodata_length(data)::integer-size(32)>> | data]
       end
     end
@@ -73,7 +74,7 @@ for type <- GeoSQL.Geometry.all_types() do
 
       quote location: :keep do
         <<len::integer-size(32), wkb::binary-size(len)>> ->
-          %x{} = decoded = Geo.WKB.decode!(wkb)
+          {:ok, %x{} = decoded} = Geometry.from_ewkb(wkb)
 
           if x != unquote(type), do: nil, else: decoded
       end

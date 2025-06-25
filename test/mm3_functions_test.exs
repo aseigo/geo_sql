@@ -10,9 +10,9 @@ defmodule GeoSQL.MM3Functions.Test do
   for repo <- Helper.repos() do
     describe "MM3 Queries (#{repo})" do
       test "order by distance" do
-        geom1 = %Geo.Point{coordinates: {30, -90}, srid: 4326}
-        geom2 = %Geo.Point{coordinates: {30, -91}, srid: 4326}
-        geom3 = %Geo.Point{coordinates: {60, -91}, srid: 4326}
+        geom1 = %Geometry.Point{coordinates: [30, -90], srid: 4326}
+        geom2 = %Geometry.Point{coordinates: [30, -91], srid: 4326}
+        geom3 = %Geometry.Point{coordinates: [60, -91], srid: 4326}
 
         unquote(repo).insert(%Geographies{name: "there", geom: geom2})
         unquote(repo).insert(%Geographies{name: "here", geom: geom1})
@@ -42,7 +42,7 @@ defmodule GeoSQL.MM3Functions.Test do
 
     describe "is_empty/1 (#{repo})" do
       test "returns true for an empty geometry" do
-        empty_point = %Geo.Point{coordinates: nil, srid: 4326}
+        empty_point = %Geometry.Point{coordinates: [], srid: 4326}
 
         unquote(repo).insert(%LocationMulti{name: "empty_point", geom: empty_point})
 
@@ -60,7 +60,7 @@ defmodule GeoSQL.MM3Functions.Test do
     end
 
     test "returns false for a non-empty geometry (#{repo})" do
-      point = %Geo.Point{coordinates: {0, 0}, srid: 4326}
+      point = %Geometry.Point{coordinates: [0, 0], srid: 4326}
       unquote(repo).insert(%LocationMulti{name: "non_empty", geom: point})
 
       query =

@@ -8,8 +8,8 @@ defmodule GeoSQL.Ecto.Test do
   for repo <- Helper.repos() do
     describe "Basic geometry queries #{repo}" do
       test "GeoSQL.Geometry.Point" do
-        point = %Geo.Point{coordinates: {30, -90}, srid: 4326}
-        linestring = %Geo.LineString{coordinates: [{30, -90}, {30, -91}], srid: 4326}
+        point = %Geometry.Point{coordinates: [30, -90], srid: 4326}
+        linestring = %Geometry.LineString{coordinates: [[30, -90], [30, -91]], srid: 4326}
 
         {:ok, _} =
           Ecto.Adapters.SQL.query(
@@ -28,8 +28,8 @@ defmodule GeoSQL.Ecto.Test do
                    %GeoType{
                      id: 42,
                      t: "test",
-                     point: %Geo.Point{srid: 4326},
-                     linestring: %Geo.LineString{srid: 4326}
+                     point: %Geometry.Point{srid: 4326},
+                     linestring: %Geometry.LineString{srid: 4326}
                    }
                  ],
                  unquote(repo).all(GeoType)
@@ -39,7 +39,7 @@ defmodule GeoSQL.Ecto.Test do
       end
 
       test "query multipoint" do
-        geom = Geo.WKB.decode!(Fixtures.multipoint_wkb())
+        geom = Geometry.from_ewkb!(Fixtures.multipoint_ewkb())
 
         unquote(repo).insert(%Location{name: "hello", geom: geom})
         query = from(location in Location, limit: 5, select: location)
@@ -49,7 +49,7 @@ defmodule GeoSQL.Ecto.Test do
       end
 
       test "geography" do
-        geom = %Geo.Point{coordinates: {30, -90}, srid: 4326}
+        geom = %Geometry.Point{coordinates: [30, -90], srid: 4326}
 
         unquote(repo).insert(%Geographies{name: "hello", geom: geom})
         query = from(location in Geographies, limit: 5, select: location)
@@ -59,7 +59,7 @@ defmodule GeoSQL.Ecto.Test do
       end
 
       test "cast point" do
-        geom = %Geo.Point{coordinates: {30, -90}, srid: 4326}
+        geom = %Geometry.Point{coordinates: [30, -90], srid: 4326}
 
         unquote(repo).insert(%Geographies{name: "hello", geom: geom})
         query = from(location in Geographies, limit: 5, select: location)
@@ -67,17 +67,17 @@ defmodule GeoSQL.Ecto.Test do
 
         result = hd(results)
 
-        json = Geo.JSON.encode(%Geo.Point{coordinates: {31, -90}, srid: 4326})
+        json = Geometry.to_geo_json(%Geometry.Point{coordinates: [31, -90], srid: 4326})
 
         changeset =
           Ecto.Changeset.cast(result, %{title: "Hello", geom: json}, [:name, :geom])
           |> Ecto.Changeset.validate_required([:name, :geom])
 
-        assert changeset.changes == %{geom: %Geo.Point{coordinates: {31, -90}, srid: 4326}}
+        assert changeset.changes == %{geom: %Geometry.Point{coordinates: [31, -90], srid: 4326}}
       end
 
       test "cast point from map" do
-        geom = %Geo.Point{coordinates: {30, -90}, srid: 4326}
+        geom = %Geometry.Point{coordinates: [30, -90], srid: 4326}
 
         unquote(repo).insert(%Geographies{name: "hello", geom: geom})
         query = from(location in Geographies, limit: 5, select: location)
@@ -95,14 +95,14 @@ defmodule GeoSQL.Ecto.Test do
           Ecto.Changeset.cast(result, %{title: "Hello", geom: json}, [:name, :geom])
           |> Ecto.Changeset.validate_required([:name, :geom])
 
-        assert changeset.changes == %{geom: %Geo.Point{coordinates: {31, -90}, srid: 4326}}
+        assert changeset.changes == %{geom: %Geometry.Point{coordinates: [31, -90], srid: 4326}}
       end
     end
 
     describe "Basic mutations #{repo}" do
       test "insert multiple geometry types" do
-        geom1 = %Geo.Point{coordinates: {30, -90}, srid: 4326}
-        geom2 = %Geo.LineString{coordinates: [{30, -90}, {30, -91}], srid: 4326}
+        geom1 = %Geometry.Point{coordinates: [30, -90], srid: 4326}
+        geom2 = %Geometry.LineString{coordinates: [[30, -90], [30, -91]], srid: 4326}
 
         unquote(repo).insert(%LocationMulti{name: "hello point", geom: geom1})
         unquote(repo).insert(%LocationMulti{name: "hello line", geom: geom2})

@@ -255,8 +255,8 @@ defmodule GeoSQL.PostGIS do
   end
 
   @spec line_crossing_direction(
-          linestringA :: Geo.LineString.t() | GeoSQL.fragment(),
-          linestringB :: Geo.LineString.t() | GeoSQL.fragment()
+          linestringA :: Geometry.LineString.t() | GeoSQL.fragment(),
+          linestringB :: Geometry.LineString.t() | GeoSQL.fragment()
         ) ::
           GeoSQL.fragment()
   @doc group: "Topology Relationships"

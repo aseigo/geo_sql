@@ -10,7 +10,7 @@ defmodule GeoSQL.PostGISFunctions.Test do
   alias GeoSQL.Test.Schema.{Location, LocationMulti}
 
   test "query sphere distance" do
-    geom = Geo.WKB.decode!(Fixtures.multipoint_wkb())
+    geom = Geometry.from_ewkb!(Fixtures.multipoint_ewkb())
 
     PostGISRepo.insert(%Location{name: "hello", geom: geom})
 
@@ -24,10 +24,10 @@ defmodule GeoSQL.PostGISFunctions.Test do
 
   describe "is_collection/1" do
     test "returns true for a geometry collection" do
-      collection = %Geo.GeometryCollection{
+      collection = %Geometry.GeometryCollection{
         geometries: [
-          %Geo.Point{coordinates: {0, 0}, srid: 4326},
-          %Geo.LineString{coordinates: [{0, 0}, {1, 1}], srid: 4326}
+          %Geometry.Point{coordinates: [0, 0], srid: 4326},
+          %Geometry.LineString{coordinates: [[0, 0], [1, 1]], srid: 4326}
         ],
         srid: 4326
       }
@@ -45,8 +45,8 @@ defmodule GeoSQL.PostGISFunctions.Test do
     end
 
     test "returns true for a multi-geometry" do
-      multi_point = %Geo.MultiPoint{
-        coordinates: [{0, 0}, {1, 1}, {2, 2}],
+      multi_point = %Geometry.MultiPoint{
+        coordinates: [[0, 0], [1, 1], [2, 2]],
         srid: 4326
       }
 
@@ -63,7 +63,7 @@ defmodule GeoSQL.PostGISFunctions.Test do
     end
 
     test "returns false for a simple geometry" do
-      point = %Geo.Point{coordinates: {0, 0}, srid: 4326}
+      point = %Geometry.Point{coordinates: [0, 0], srid: 4326}
       PostGISRepo.insert(%LocationMulti{name: "point", geom: point})
 
       query =
@@ -79,9 +79,9 @@ defmodule GeoSQL.PostGISFunctions.Test do
 
   describe "PostGIS.points/1" do
     test "returns multipoint from a linestring" do
-      line_coords = [{0.0, 0.0}, {1.0, 1.0}, {2.0, 2.0}]
+      line_coords = [[0.0, 0.0], [1.0, 1.0], [2.0, 2.0]]
 
-      line = %Geo.LineString{
+      line = %Geometry.LineString{
         coordinates: line_coords,
         srid: 4326
       }
@@ -96,7 +96,7 @@ defmodule GeoSQL.PostGISFunctions.Test do
 
       result = PostGISRepo.one(query)
 
-      assert %Geo.MultiPoint{} = result
+      assert %Geometry.MultiPoint{} = result
 
       assert length(result.coordinates) == 3
 
@@ -104,10 +104,10 @@ defmodule GeoSQL.PostGISFunctions.Test do
     end
 
     test "returns multipoint from a polygon" do
-      polygon_coords = [{0.0, 0.0}, {0.0, 2.0}, {2.0, 2.0}, {2.0, 0.0}, {0.0, 0.0}]
+      polygon_coords = [[0.0, 0.0], [0.0, 2.0], [2.0, 2.0], [2.0, 0.0], [0.0, 0.0]]
 
-      polygon = %Geo.Polygon{
-        coordinates: [polygon_coords],
+      polygon = %Geometry.Polygon{
+        rings: [polygon_coords],
         srid: 4326
       }
 
@@ -120,7 +120,7 @@ defmodule GeoSQL.PostGISFunctions.Test do
         )
 
       result = PostGISRepo.one(query)
-      assert %Geo.MultiPoint{} = result
+      assert %Geometry.MultiPoint{} = result
 
       # 5 coordinates expected including the equivalent overlapping start/end points
       assert length(result.coordinates) == 5
@@ -133,8 +133,8 @@ defmodule GeoSQL.PostGISFunctions.Test do
 
   describe "PostGIS.dump" do
     test "atomic geometry is returned directly" do
-      point = %Geo.Point{
-        coordinates: {0.0, 0.0},
+      point = %Geometry.Point{
+        coordinates: [0.0, 0.0],
         srid: 4326
       }
 
@@ -152,13 +152,13 @@ defmodule GeoSQL.PostGISFunctions.Test do
     end
 
     test "breaks a multipolygon into its constituent polygons" do
-      polygon1 = %Geo.Polygon{
-        coordinates: [[{0.0, 0.0}, {0.0, 1.0}, {1.0, 1.0}, {1.0, 0.0}, {0.0, 0.0}]],
+      polygon1 = %Geometry.Polygon{
+        rings: [[[0.0, 0.0], [0.0, 1.0], [1.0, 1.0], [1.0, 0.0], [0.0, 0.0]]],
         srid: 4326
       }
 
-      polygon2 = %Geo.Polygon{
-        coordinates: [[{2.0, 2.0}, {2.0, 3.0}, {3.0, 3.0}, {3.0, 2.0}, {2.0, 2.0}]],
+      polygon2 = %Geometry.Polygon{
+        rings: [[[2.0, 2.0], [2.0, 3.0], [3.0, 3.0], [3.0, 2.0], [2.0, 2.0]]],
         srid: 4326
       }
 
@@ -176,7 +176,7 @@ defmodule GeoSQL.PostGISFunctions.Test do
       assert length(results) == 2
 
       Enum.each(results, fn {_path, geom} ->
-        assert %Geo.Polygon{} = geom
+        assert %Geometry.Polygon{} = geom
       end)
 
       expected_polygons = MapSet.new([polygon1, polygon2])
